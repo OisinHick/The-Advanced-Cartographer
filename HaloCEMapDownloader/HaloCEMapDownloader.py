@@ -50,8 +50,13 @@ def scrape_filelinks_download(url):
     browser.implicitly_wait(320)
     html = browser.page_source
     soup = BeautifulSoup(html, "html.parser")
-    
-    print(soup)
+
+    # Find the form element with the specified attributes
+    form_element = soup.find('form', {'action': 'index.cfm', 'method': 'post'})
+
+    # Print the HTML source of the found form element
+    if form_element:
+        print(form_element.prettify())
 
     browser.quit()
 
