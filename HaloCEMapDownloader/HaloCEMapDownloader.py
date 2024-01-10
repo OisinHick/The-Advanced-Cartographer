@@ -1,4 +1,5 @@
 import os
+import getopt, sys
 import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -81,11 +82,53 @@ def scrape_filelinks_download(url):
 
     browser.quit()
 
-# Run the scraping function for the first URL
-scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=10")
 
-# Run the scraping function for the second URL with Start parameter incremented by 30
-for i in range(0, 400):  # Adjust the range based on how many times you want to increment Start
-    start_value = 31 + i * 30
-    url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=10&sort=1&Start={start_value}"
-    scrape_filelinks(url_page_one)
+def main():
+
+    argumentList = sys.argv[1:]
+    
+    # Options
+    options = "hmo:"
+    
+    # Long options
+    long_options = ["Help", "Download", "HaloInstallDir="]
+    
+    try:
+        # Parsing argument
+        arguments, values = getopt.getopt(argumentList, options, long_options)
+        
+        # checking each argument
+        for currentArgument, currentValue in arguments:
+    
+            if currentArgument in ("-h", "--Help"):
+                print ("Displaying Help")
+                
+            elif currentArgument in ("--HaloInstallDir"):
+                print (("Enabling special output mode (% s)") % (currentValue))
+
+            elif currentArgument in ("-d", "--Download"):
+                print ("Download Started")
+
+                # Run the scraping function for the first URL
+                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=10")
+
+                # Run the scraping function for the second URL with Start parameter incremented by 30
+                for i in range(0, 400):  # Adjust the range based on how many times you want to increment Start
+                    start_value = 31 + i * 30
+                    url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=10&sort=1&Start={start_value}"
+                    scrape_filelinks(url_page_one)
+                            
+    except getopt.error as err:
+        # output error, and return with an error code
+        print (str(err))
+     
+main()
+
+ 
+    
+     
+
+
+
+ 
+ 
