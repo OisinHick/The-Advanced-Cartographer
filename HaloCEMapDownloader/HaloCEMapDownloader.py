@@ -1,14 +1,17 @@
 import os
 import getopt
 import sys
+import zipfile
 import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from urllib.parse import urljoin
+import shutil
 
 # Get the current working directory
 current_directory = os.path.dirname(os.path.realpath(__file__))
+downloads_directory = os.path.join(current_directory, 'downloads')
 
 # Function to scrape file links
 def scrape_filelinks(url):
@@ -40,7 +43,7 @@ def scrape_filelinks(url):
 def scrape_filelinks_download(url):
     chrome_options = Options()
     chrome_options.add_argument('--headless')
-    chrome_options.add_argument(f'--download.default_directory={os.path.join(current_directory, "downloads")}')
+    chrome_options.add_argument(f'--download.default_directory={downloads_directory}')
     
     # Construct the local path for chromedriver.exe
     chromedriver_path = os.path.join(current_directory, 'chromedriver.exe')
@@ -81,7 +84,7 @@ def scrape_filelinks_download(url):
                 filename = "downloaded_file.zip"
 
             # Save the response content to a file
-            file_path = os.path.join(current_directory, 'downloads', filename)
+            file_path = os.path.join(downloads_directory, filename)
             with open(file_path, 'wb') as file:
                 file.write(response.content)
 
@@ -94,6 +97,29 @@ def scrape_filelinks_download(url):
 
     browser.quit()
 
+# Function to unzip files in the downloads folder
+def unzip_downloads(install_dir):
+    halo_exe_path = os.path.join(install_dir, 'halo.exe')
+    maps_dir_path = os.path.join(install_dir, 'maps')
+
+    if os.path.exists(halo_exe_path) and os.path.exists(maps_dir_path):
+        for root, dirs, files in os.walk(downloads_directory):
+            for file in files:
+                if file.endswith('.zip'):
+                    zip_file_path = os.path.join(root, file)
+                    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+                        zip_ref.extractall(downloads_directory)
+
+# Function to move .map files to the installation's map folder
+def move_map_files(install_dir):
+    maps_dir_path = os.path.join(install_dir, 'maps')
+
+    if os.path.exists(maps_dir_path):
+        for root, dirs, files in os.walk(downloads_directory):
+            for file in files:
+                if file.endswith('.map'):
+                    map_file_path = os.path.join(root, file)
+                    shutil.move(map_file_path, maps_dir_path)
 
 def main():
     argumentList = sys.argv[1:]
@@ -120,6 +146,11 @@ def main():
             elif currentArgument in ("--HaloInstallDir"):
                 # Error handling implemented here to check that param is either true or false
                 print(("Moving files to (% s)") % (currentValue))
+                if os.path.exists(currentValue):
+                    unzip_downloads(currentValue)
+                    move_map_files(currentValue)
+                else:
+                    print(f"Error: Directory {currentValue} does not exist.")
 
             elif currentArgument in ("-d", "--Download"):
                 print("Download Started")
@@ -139,3 +170,4 @@ def main():
 
 
 main()
+
