@@ -1,16 +1,24 @@
 import os
-import getopt, sys
+import getopt
+import sys
 import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from urllib.parse import urljoin
 
+# Get the current working directory
+current_directory = os.path.dirname(os.path.realpath(__file__))
+
 # Function to scrape file links
 def scrape_filelinks(url):
     chrome_options = Options()
     chrome_options.add_argument('--headless')
-    cService = webdriver.ChromeService(executable_path='D:\\Github\\Halo-CE-Map-Downloads-System\\HaloCEMapDownloader\\chromedriver.exe')
+    
+    # Construct the local path for chromedriver.exe
+    chromedriver_path = os.path.join(current_directory, 'chromedriver.exe')
+    
+    cService = webdriver.ChromeService(executable_path=chromedriver_path)
     browser = webdriver.Chrome(service=cService, options=chrome_options)
 
     browser.get(url)
@@ -32,8 +40,12 @@ def scrape_filelinks(url):
 def scrape_filelinks_download(url):
     chrome_options = Options()
     chrome_options.add_argument('--headless')
-    chrome_options.add_argument(f'--download.default_directory=D:\Github\Halo-CE-Map-Downloads-System\HaloCEMapDownloader\downloads')
-    cService = webdriver.ChromeService(executable_path='D:\\Github\\Halo-CE-Map-Downloads-System\\HaloCEMapDownloader\\chromedriver.exe')
+    chrome_options.add_argument(f'--download.default_directory={os.path.join(current_directory, "downloads")}')
+    
+    # Construct the local path for chromedriver.exe
+    chromedriver_path = os.path.join(current_directory, 'chromedriver.exe')
+    
+    cService = webdriver.ChromeService(executable_path=chromedriver_path)
     browser = webdriver.Chrome(service=cService, options=chrome_options)
 
     browser.get(url)
@@ -69,10 +81,10 @@ def scrape_filelinks_download(url):
                 filename = "downloaded_file.zip"
 
             # Save the response content to a file
-            file_path = os.path.join('D:\Github\Halo-CE-Map-Downloads-System\HaloCEMapDownloader\downloads', filename)
+            file_path = os.path.join(current_directory, 'downloads', filename)
             with open(file_path, 'wb') as file:
                 file.write(response.content)
-            
+
             print(f"Downloaded file: {file_path}")
         else:
             print(f"Failed to download file. Status code: {response.status_code}")
@@ -84,31 +96,33 @@ def scrape_filelinks_download(url):
 
 
 def main():
-
     argumentList = sys.argv[1:]
-    
+
     # Options
     options = "hmo:"
-    
     # Long options
-    long_options = ["Help", "Download", "HaloInstallDir="]
-    
+    long_options = ["Help", "HaloInstallDir=", "Download"]
+
     try:
         # Parsing argument
         arguments, values = getopt.getopt(argumentList, options, long_options)
-        
+
         # checking each argument
         for currentArgument, currentValue in arguments:
-    
+
             if currentArgument in ("-h", "--Help"):
-                print ("Displaying Help")
-                
+                print("Displaying Help")
+                print("Options:")
+                print("    -h, --Help: Display this help menu")
+                print("    --HaloInstallDir=<value>: Specify the Halo installation directory")
+                print("    -d, --Download: Start the download process")
+
             elif currentArgument in ("--HaloInstallDir"):
                 # Error handling implemented here to check that param is either true or false
-                print (("Enabling special output mode (% s)") % (currentValue))
+                print(("Moving files to (% s)") % (currentValue))
 
             elif currentArgument in ("-d", "--Download"):
-                print ("Download Started")
+                print("Download Started")
 
                 # Run the scraping function for the first URL
                 scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=10")
@@ -118,18 +132,10 @@ def main():
                     start_value = 31 + i * 30
                     url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=10&sort=1&Start={start_value}"
                     scrape_filelinks(url_page_one)
-                            
+
     except getopt.error as err:
         # output error, and return with an error code
-        print (str(err))
-     
+        print(str(err))
+
+
 main()
-
- 
-    
-     
-
-
-
- 
- 
