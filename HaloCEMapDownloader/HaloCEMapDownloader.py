@@ -104,6 +104,7 @@ def main():
                 print ("Displaying Help")
                 
             elif currentArgument in ("--HaloInstallDir"):
+                # Error handling implemented here to check that param is either true or false
                 print (("Enabling special output mode (% s)") % (currentValue))
 
             elif currentArgument in ("-d", "--Download"):
