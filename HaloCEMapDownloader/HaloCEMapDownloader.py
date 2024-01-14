@@ -110,6 +110,8 @@ def unzip_downloads(install_dir):
                     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                         zip_ref.extractall(downloads_directory)
 
+# ... (previous code remains unchanged)
+
 # Function to move .map files to the installation's map folder
 def move_map_files(install_dir):
     maps_dir_path = os.path.join(install_dir, 'maps')
@@ -120,6 +122,17 @@ def move_map_files(install_dir):
                 if file.endswith('.map'):
                     map_file_path = os.path.join(root, file)
                     shutil.move(map_file_path, maps_dir_path)
+
+        # Empty the downloads directory after moving the files
+        for file in os.listdir(downloads_directory):
+            file_path = os.path.join(downloads_directory, file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print(f"Failed to delete {file_path}. Error: {e}")
 
 def main():
     argumentList = sys.argv[1:]
@@ -169,5 +182,5 @@ def main():
         print(str(err))
 
 
-main()
-
+if __name__ == "__main__":
+    main()
