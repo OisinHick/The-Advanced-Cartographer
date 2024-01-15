@@ -121,7 +121,14 @@ def move_map_files(install_dir):
             for file in files:
                 if file.endswith('.map'):
                     map_file_path = os.path.join(root, file)
-                    shutil.move(map_file_path, maps_dir_path)
+                    destination_path = os.path.join(maps_dir_path, file)
+
+                    # Check if the file already exists in the destination
+                    if not os.path.exists(destination_path):
+                        shutil.move(map_file_path, destination_path)
+                        print(f"Moved file: {file} to {maps_dir_path}")
+                    else:
+                        print(f"File {file} already exists in {maps_dir_path}. Skipping.")
 
         # Empty the downloads directory after moving the files
         for file in os.listdir(downloads_directory):
