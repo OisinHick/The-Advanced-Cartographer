@@ -110,8 +110,6 @@ def unzip_downloads(install_dir):
                     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                         zip_ref.extractall(downloads_directory)
 
-# ... (previous code remains unchanged)
-
 # Function to move .map files to the installation's map folder
 def move_map_files(install_dir):
     maps_dir_path = os.path.join(install_dir, 'maps')
