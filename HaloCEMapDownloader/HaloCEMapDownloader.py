@@ -145,7 +145,7 @@ def main():
     # Options
     options = "hmo:"
     # Long options
-    long_options = ["Help", "HaloInstallDir=", "DownloadMultiplayer"]
+    long_options = ["Help", "HaloInstallDir=", "DownloadMultiplayer", "DownloadLumoria"]
 
     try:
         # Parsing argument
@@ -159,7 +159,8 @@ def main():
                 print("Options:")
                 print("    -h, --Help: Display this help menu")
                 print("    --HaloInstallDir=<value>: Specify the Halo installation directory")
-                print("    -dm, --DownloadMultiplayer: Start the download process")
+                print("    -dm, --DownloadMultiplayer: Start the download process for multiplayer maps")
+                print("    -dlm, --DownloadLumoria: Start the download process for the Lumoria maps")
 
             elif currentArgument in ("--HaloInstallDir"):
                 # Error handling implemented here to check that param is either true or false
@@ -186,7 +187,7 @@ def main():
                 print("Download Started")
 
                 # Run the scraping function for the lumoria URL here
-                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=10")
+                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=41")
 
     except getopt.error as err:
         # output error, and return with an error code
