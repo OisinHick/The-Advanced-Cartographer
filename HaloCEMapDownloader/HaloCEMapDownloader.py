@@ -145,7 +145,7 @@ def main():
     # Options
     options = "hmo:"
     # Long options
-    long_options = ["Help", "HaloInstallDir=", "Download"]
+    long_options = ["Help", "HaloInstallDir=", "DownloadMultiplayer"]
 
     try:
         # Parsing argument
@@ -159,7 +159,7 @@ def main():
                 print("Options:")
                 print("    -h, --Help: Display this help menu")
                 print("    --HaloInstallDir=<value>: Specify the Halo installation directory")
-                print("    -d, --Download: Start the download process")
+                print("    -dm, --DownloadMultiplayer: Start the download process")
 
             elif currentArgument in ("--HaloInstallDir"):
                 # Error handling implemented here to check that param is either true or false
@@ -170,7 +170,7 @@ def main():
                 else:
                     print(f"Error: Directory {currentValue} does not exist.")
 
-            elif currentArgument in ("-d", "--Download"):
+            elif currentArgument in ("-dm", "--DownloadMultiplayer"):
                 print("Download Started")
 
                 # Run the scraping function for the first URL
@@ -181,6 +181,12 @@ def main():
                     start_value = 31 + i * 30
                     url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=10&sort=1&Start={start_value}"
                     scrape_filelinks(url_page_one)
+
+            elif currentArgument in ("-dlm", "--DownloadLumoria"):
+                print("Download Started")
+
+                # Run the scraping function for the lumoria URL here
+                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=10")
 
     except getopt.error as err:
         # output error, and return with an error code
