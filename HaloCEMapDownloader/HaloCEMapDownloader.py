@@ -113,20 +113,35 @@ def unzip_downloads(install_dir):
 # Function to move .map files to the installation's map folder
 def move_map_files(install_dir):
     maps_dir_path = os.path.join(install_dir, 'maps')
+    ui_map_name = 'ui.map'
 
     if os.path.exists(maps_dir_path):
+        ui_map_destination_path = os.path.join(maps_dir_path, ui_map_name)
+
+        # Check if ui.map already exists in the destination
+        ui_map_already_exists = os.path.exists(ui_map_destination_path)
+
         for root, dirs, files in os.walk(downloads_directory):
             for file in files:
                 if file.endswith('.map'):
                     map_file_path = os.path.join(root, file)
                     destination_path = os.path.join(maps_dir_path, file)
 
-                    # Check if the file already exists in the destination
-                    if not os.path.exists(destination_path):
-                        shutil.move(map_file_path, destination_path)
-                        print(f"Moved file: {file} to {maps_dir_path}")
+                    # Check if the file is a ui.map file
+                    if file.lower() == ui_map_name.lower():
+                        if not ui_map_already_exists:
+                            shutil.move(map_file_path, ui_map_destination_path)
+                            print(f"Moved file: {file} to {ui_map_destination_path}")
+                        else:
+                            print(f"{ui_map_name} already exists in {maps_dir_path}. Keeping the original.")
+                        break  # Skip other files if ui.map is already moved or exists
                     else:
-                        print(f"File {file} already exists in {maps_dir_path}. Skipping.")
+                        # Check if the file already exists in the destination
+                        if not os.path.exists(destination_path):
+                            shutil.move(map_file_path, destination_path)
+                            print(f"Moved file: {file} to {maps_dir_path}")
+                        else:
+                            print(f"File {file} already exists in {maps_dir_path}. Skipping.")
 
         # Empty the downloads directory after moving the files
         for file in os.listdir(downloads_directory):
