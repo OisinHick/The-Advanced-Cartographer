@@ -160,7 +160,7 @@ def main():
     # Options
     options = "hmo:"
     # Long options
-    long_options = ["Help", "HaloInstallDir=", "DownloadMultiplayer", "DownloadLumoria"]
+    long_options = ["Help", "HaloInstallDir=", "DownloadMultiplayer", "DownloadMultiplayerWthAI", "DownloadLumoria"]
 
     try:
         # Parsing argument
@@ -176,6 +176,8 @@ def main():
                 print("    --HaloInstallDir=<value>: Specify the Halo installation directory")
                 print("    -dm, --DownloadMultiplayer: Start the download process for multiplayer maps")
                 print("    -dlm, --DownloadLumoria: Start the download process for the Lumoria maps")
+                print("    -dmai, --DownloadMultiplayerWthAI: Start the download process for multiplayer maps which have AI")
+
 
             elif currentArgument in ("--HaloInstallDir"):
                 # Error handling implemented here to check that param is either true or false
@@ -196,6 +198,18 @@ def main():
                 for i in range(0, 400):  # Adjust the range based on how many times you want to increment Start
                     start_value = 31 + i * 30
                     url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=10&sort=1&Start={start_value}"
+                    scrape_filelinks(url_page_one)
+            
+            elif currentArgument in ("-dmai", "--DownloadMultiplayerWthAI"):
+                print("Download Started")
+
+                # Run the scraping function for the first URL
+                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=39")
+
+                # Run the scraping function for the second URL with Start parameter incremented by 30
+                for i in range(0, 400):  # Adjust the range based on how many times you want to increment Start
+                    start_value = 31 + i * 30
+                    url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=39&sort=1&Start={start_value}"
                     scrape_filelinks(url_page_one)
 
             elif currentArgument in ("-dlm", "--DownloadLumoria"):
