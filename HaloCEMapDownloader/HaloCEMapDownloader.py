@@ -202,7 +202,7 @@ def main():
                 print("Download Started")
 
                 # Run the scraping function for the lumoria URL here
-                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=41")
+                scrape_filelinks_download("https://www.halomaps.org/hce/detail.cfm?fid=6507")
 
     except getopt.error as err:
         # output error, and return with an error code
