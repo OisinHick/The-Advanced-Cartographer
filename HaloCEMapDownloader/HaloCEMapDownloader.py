@@ -160,7 +160,7 @@ def main():
     # Options
     options = "hmo:"
     # Long options
-    long_options = ["Help", "HaloInstallDir=", "DownloadMultiplayer", "DownloadMultiplayerWthAI", "DownloadMultiplayerModified", "DownloadMultiplayerForMachinima", "DownloadLumoria"]
+    long_options = ["Help", "HaloInstallDir=", "DownloadMultiplayer", "DownloadMultiplayerWthAI", "DownloadMultiplayerModified", "DownloadMultiplayerForMachinima", "DownloadLumoria", "DownloadSingleplayerModified", "DownloadSingleplayerCustomMaps"]
 
     try:
         # Parsing argument
@@ -179,6 +179,10 @@ def main():
                 print("    -dmai, --DownloadMultiplayerWthAI: Start the download process for multiplayer maps which have AI")
                 print("    -dmm, --DownloadMultiplayerModified: Start the download process for multiplayer maps which are modified")
                 print("    -dmfm, --DownloadMultiplayerForMachinima: Start the download process for multiplayer maps which are used in machinimas")
+                print("    -dsm, --DownloadSingleplayerModified: Start the download process for singleplayer maps which are modified")
+                print("    -dscm, --DownloadSingleplayerCustomMaps: Start the download process for singleplayer maps which are custom")
+
+
 
 
             elif currentArgument in ("--HaloInstallDir"):
@@ -237,6 +241,30 @@ def main():
 
                 # Run the scraping function for the lumoria URL here
                 scrape_filelinks_download("https://www.halomaps.org/hce/detail.cfm?fid=6507")
+            
+            elif currentArgument in ("-dsm", "--DownloadSingleplayerModified"):
+                print("Download Started")
+
+                # Run the scraping function for the first URL
+                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=27")
+
+                # Run the scraping function for the second URL with Start parameter incremented by 30
+                for i in range(0, 400):  # Adjust the range based on how many times you want to increment Start
+                    start_value = 31 + i * 30
+                    url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=27&sort=1&Start={start_value}"
+                    scrape_filelinks(url_page_one)
+            
+            elif currentArgument in ("-dscm", "--DownloadSingleplayerCustomMaps"):
+                print("Download Started")
+
+                # Run the scraping function for the first URL
+                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=37")
+
+                # Run the scraping function for the second URL with Start parameter incremented by 30
+                for i in range(0, 400):  # Adjust the range based on how many times you want to increment Start
+                    start_value = 31 + i * 30
+                    url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=27&sort=1&Start={start_value}"
+                    scrape_filelinks(url_page_one)
 
     except getopt.error as err:
         # output error, and return with an error code
