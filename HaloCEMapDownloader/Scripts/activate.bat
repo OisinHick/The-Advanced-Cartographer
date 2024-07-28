@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=D:\Github\Halo-CE-Map-Downloads-System\HaloCEMapDownloader
+set VIRTUAL_ENV=C:\Users\oisin\Documents\GitHub\The-Advanced-Cartographer\HaloCEMapDownloader
 
 if not defined PROMPT set PROMPT=$P$G
 

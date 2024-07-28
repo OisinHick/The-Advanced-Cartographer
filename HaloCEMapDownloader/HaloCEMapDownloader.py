@@ -13,6 +13,21 @@ import shutil
 current_directory = os.path.dirname(os.path.realpath(__file__))
 downloads_directory = os.path.join(current_directory, 'downloads')
 
+def create_downloads_folder():
+    # Get the current working directory
+    current_directory = os.getcwd()
+    
+    # Define the downloads directory path
+    downloads_directory = os.path.join(current_directory, 'downloads')
+    
+    # Check if the downloads directory exists
+    if not os.path.exists(downloads_directory):
+        # If not, create the downloads directory
+        os.makedirs(downloads_directory)
+        print(f"Created 'downloads' folder at: {downloads_directory}")
+    else:
+        print(f"'downloads' folder already exists at: {downloads_directory}")
+
 # Function to scrape file links
 def scrape_filelinks(url):
     chrome_options = Options()
@@ -82,6 +97,8 @@ def scrape_filelinks_download(url):
                 filename = content_disposition.split("filename=")[-1]
             else:
                 filename = "downloaded_file.zip"
+            
+            print(filename)
 
             # Save the response content to a file
             file_path = os.path.join(downloads_directory, filename)
@@ -155,6 +172,9 @@ def move_map_files(install_dir):
                 print(f"Failed to delete {file_path}. Error: {e}")
 
 def main():
+
+    create_downloads_folder()
+    
     argumentList = sys.argv[1:]
 
     # Options
