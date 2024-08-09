@@ -198,12 +198,9 @@ def main():
                 print("    -dlm, --DownloadLumoria: Start the download process for the Lumoria maps")
                 print("    -dmai, --DownloadMultiplayerWthAI: Start the download process for multiplayer maps which have AI")
                 print("    -dmm, --DownloadMultiplayerModified: Start the download process for multiplayer maps which are modified")
-                print("    -dmfm, --DownloadMultiplayerForMachinima: Start the download process for multiplayer maps which are used in machinimas")
+                print("    -dmfm, --DownloadMultiplayerForMachinima: Start the download process for multiplayer maps which were used in machinimas")
                 print("    -dsm, --DownloadSingleplayerModified: Start the download process for singleplayer maps which are modified")
                 print("    -dscm, --DownloadSingleplayerCustomMaps: Start the download process for singleplayer maps which are custom")
-
-
-
 
             elif currentArgument in ("--HaloInstallDir"):
                 # Error handling implemented here to check that param is either true or false
