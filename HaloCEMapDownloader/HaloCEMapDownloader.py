@@ -14,6 +14,7 @@ import shutil
 import logging
 import argparse
 from webdriver_manager.chrome import ChromeDriverManager  # Import webdriver_manager
+import re  # Import the regular expression module
 
 
 # --- Constants ---
@@ -79,10 +80,17 @@ def get_download_info(browser, url):
             # Use XPath to find the h1 element
             h1_element = browser.find_element(By.XPATH, "/html/body/section[1]/div/div/div[2]/div/div/h1")
             filename_text = h1_element.text
-            
-            #Basic processing to remove unwanted text, and add extension
-            filename = filename_text.replace("Halo Custom Edition Map:", "").replace(" ", "").strip() + ".zip"
-        
+
+            # Use regular expressions for more robust filename extraction
+            match = re.search(r"(.+)", filename_text)  # Match any characters
+            if match:
+                # Get the matched group, remove "Halo Custom Edition Map:", spaces, and add .zip
+                filename = match.group(1).replace("Halo Custom Edition Map:", "").strip().replace(" ", "") + ".zip"
+                 # Replace invalid characters
+                filename = re.sub(r'[\\/*?:"<>|]', "", filename)
+            else:
+                logging.warning("Could not parse filename from h1 text. Using default.")
+
         except Exception as e:
             logging.warning(f"Could not extract filename from <h1>: {e}. Using default filename.")
 
@@ -90,11 +98,17 @@ def get_download_info(browser, url):
         # --- Fallback: Get from Content-Disposition (if XPath fails) ---
         if filename == "downloaded_file.zip":  # Check if default is still used
             try:
+                # Wait for the meta tag to be present (it might be added dynamically)
+                WebDriverWait(browser, 10).until(
+                    EC.presence_of_element_located((By.XPATH, "//meta[@http-equiv='Content-Disposition']"))
+                )
                 content_disposition = browser.execute_script(
                     "return document.querySelector('meta[http-equiv=\"Content-Disposition\"]').content"
                 )
+
                 if content_disposition:
                     filename = content_disposition.split("filename=")[-1].strip('"')
+                    filename = re.sub(r'[\\/*?:"<>|]', "", filename) #Remove invalid characters here too
             except Exception as e:
                 logging.warning(f"Could not extract filename from Content-Disposition: {e}")
         return filename, post_data
@@ -181,14 +195,14 @@ def move_map_files(install_dir, downloads_directory):
                     logging.error(f"Error moving {file}: {e}")
 
 
-    # Empty the downloads directory after moving the files
+    # Empty the downloads directory after moving the files, only remove files, not subdirectories
     for file in os.listdir(downloads_directory):
         file_path = os.path.join(downloads_directory, file)
         try:
             if os.path.isfile(file_path):
                 os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
+            #elif os.path.isdir(file_path):  #Removed this
+            #    shutil.rmtree(file_path)
         except Exception as e:
             logging.error(f"Failed to delete {file_path}. Error: {e}")
 
@@ -253,9 +267,10 @@ def main():
 
         if args.DownloadLumoria:
             logging.info("Starting Lumoria map download...")
-            filename, post_data = get_download_info(browser, "https://www.halomaps.org/hce/detail.cfm?fid=6507")
-            if filename and post_data:
-                download_file(f'{BASE_URL}detail.cfm', post_data, filename, downloads_directory)
+            #filename, post_data = get_download_info(browser, "https://www.halomaps.org/hce/detail.cfm?fid=6503")
+            scrape_filelinks(browser, "https://www.halomaps.org/hce/index.cfm?sid=41", downloads_directory)
+            #if filename and post_data:
+            #    download_file(f'{BASE_URL}detail.cfm', post_data, filename, downloads_directory)
 
         if args.DownloadSingleplayerModified:
             logging.info("Starting modified singleplayer map download...")
