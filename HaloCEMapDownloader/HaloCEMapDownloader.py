@@ -1,46 +1,118 @@
 import os
-import getopt
 import sys
 import zipfile
 import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from urllib.parse import urljoin
 import shutil
+import logging
+import argparse
+from webdriver_manager.chrome import ChromeDriverManager  # Import webdriver_manager
 
-# Get the current working directory
-current_directory = os.path.dirname(os.path.realpath(__file__))
-downloads_directory = os.path.join(current_directory, 'downloads')
+
+# --- Constants ---
+BASE_URL = "https://www.halomaps.org/hce/"
+DOWNLOADS_DIR = 'downloads'
+
+# --- Configure Logging ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def create_downloads_folder():
-    # Get the current working directory
-    current_directory = os.getcwd()
-    
-    # Define the downloads directory path
-    downloads_directory = os.path.join(current_directory, 'downloads')
-    
-    # Check if the downloads directory exists
-    if not os.path.exists(downloads_directory):
-        # If not, create the downloads directory
-        os.makedirs(downloads_directory)
-        print(f"Created 'downloads' folder at: {downloads_directory}")
+    downloads_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), DOWNLOADS_DIR)
+    if not os.path.exists(downloads_path):
+        os.makedirs(downloads_path)
+        logging.info(f"Created 'downloads' folder at: {downloads_path}")
     else:
-        print(f"'downloads' folder already exists at: {downloads_directory}")
+        logging.info(f"'downloads' folder already exists at: {downloads_path}")
+    return downloads_path
 
-# Function to scrape file links
-def scrape_filelinks(url):
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    
-    # Construct the local path for chromedriver.exe
-    chromedriver_path = os.path.join(current_directory, 'chromedriver.exe')
-    
-    cService = webdriver.ChromeService(executable_path=chromedriver_path)
-    browser = webdriver.Chrome(service=cService, options=chrome_options)
+def download_file(url, post_data, filename, downloads_directory):
+    try:
+        response = requests.post(url, data=post_data, stream=True)
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
 
+        file_path = os.path.join(downloads_directory, filename)
+        with open(file_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        logging.info(f"Downloaded file: {file_path}")
+        return file_path  # Return the path for later use (unzipping)
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error downloading {url}: {e}")
+        return None
+
+
+def get_download_info(browser, url):
     browser.get(url)
-    browser.implicitly_wait(320)
+    try:
+        # Explicit wait for the presence of the 'fid' input element
+        WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.NAME, 'fid'))
+        )
+    except TimeoutError:
+        logging.error("Timed out waiting for the form.")
+        return None, None
+
+    html = browser.page_source
+    soup = BeautifulSoup(html, "html.parser")
+
+    fid = soup.find('input', {'name': 'fid'})
+    action = soup.find('input', {'name': 'action'})
+    hash_value = soup.find('input', {'name': 'hash'})
+
+    if fid and action and hash_value:
+        post_data = {
+            'fid': fid['value'],
+            'action': action['value'],
+            'hash': hash_value['value']
+        }
+
+        # --- Get filename from <h1> using XPath ---
+        filename = "downloaded_file.zip"  # Default filename
+        try:
+            # Use XPath to find the h1 element
+            h1_element = browser.find_element(By.XPATH, "/html/body/section[1]/div/div/div[2]/div/div/h1")
+            filename_text = h1_element.text
+            
+            #Basic processing to remove unwanted text, and add extension
+            filename = filename_text.replace("Halo Custom Edition Map:", "").replace(" ", "").strip() + ".zip"
+        
+        except Exception as e:
+            logging.warning(f"Could not extract filename from <h1>: {e}. Using default filename.")
+
+
+        # --- Fallback: Get from Content-Disposition (if XPath fails) ---
+        if filename == "downloaded_file.zip":  # Check if default is still used
+            try:
+                content_disposition = browser.execute_script(
+                    "return document.querySelector('meta[http-equiv=\"Content-Disposition\"]').content"
+                )
+                if content_disposition:
+                    filename = content_disposition.split("filename=")[-1].strip('"')
+            except Exception as e:
+                logging.warning(f"Could not extract filename from Content-Disposition: {e}")
+        return filename, post_data
+    else:
+        logging.error("Target form not found.")
+        return None, None
+
+def scrape_filelinks(browser, url, downloads_directory):
+    browser.get(url)
+    try:
+        # Wait for at least one element with the class 'image-fade' to be present
+        WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, 'image-fade'))
+        )
+    except TimeoutError:
+        logging.error(f"Timed out waiting for file links on {url}")
+        return
+
     html = browser.page_source
     soup = BeautifulSoup(html, "html.parser")
 
@@ -48,244 +120,161 @@ def scrape_filelinks(url):
     for filelink_element in filelink_elements:
         href_value = filelink_element.get('href')
         if href_value:
-            complete_url = urljoin("https://www.halomaps.org/hce/", href_value)
-            print(complete_url)
-            scrape_filelinks_download(complete_url)
+            complete_url = urljoin(BASE_URL, href_value)
+            logging.info(f"Found link: {complete_url}")
+            filename, post_data = get_download_info(browser, complete_url)
+            if filename and post_data:
+                download_file(f'{BASE_URL}detail.cfm', post_data, filename, downloads_directory)  # Corrected URL
 
-    browser.quit()
 
-# Function to scrape file links and send a POST request
-def scrape_filelinks_download(url):
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument(f'--download.default_directory={downloads_directory}')
-    
-    # Construct the local path for chromedriver.exe
-    chromedriver_path = os.path.join(current_directory, 'chromedriver.exe')
-    
-    cService = webdriver.ChromeService(executable_path=chromedriver_path)
-    browser = webdriver.Chrome(service=cService, options=chrome_options)
 
-    browser.get(url)
-    browser.implicitly_wait(320)
-    html = browser.page_source
-    soup = BeautifulSoup(html, "html.parser")
-
-    # Extracting values
-    fid = soup.find('input', {'name': 'fid'})['value']
-    action = soup.find('input', {'name': 'action'})['value']
-    hash_value = soup.find('input', {'name': 'hash'})['value']
-
-    if fid and action and hash_value:
-        print("Found the target form:")
-        print(fid, action, hash_value)
-
-        # Sending POST request
-        post_data = {
-            'fid': fid,
-            'action': action,
-            'hash': hash_value
-        }
-        post_url = 'https://www.halomaps.org/hce/detail.cfm'
-        response = requests.post(post_url, data=post_data)
-
-        # Handle the response as needed
-        if response.status_code == 200:
-            # Extracting the filename from the content-disposition header, if available
-            content_disposition = response.headers.get('content-disposition')
-            if content_disposition:
-                filename = content_disposition.split("filename=")[-1]
-            else:
-                filename = "downloaded_file.zip"
-            
-            print(filename)
-
-            # Save the response content to a file
-            file_path = os.path.join(downloads_directory, filename)
-            with open(file_path, 'wb') as file:
-                file.write(response.content)
-
-            print(f"Downloaded file: {file_path}")
-        else:
-            print(f"Failed to download file. Status code: {response.status_code}")
-
-    else:
-        print("Target form not found.")
-
-    browser.quit()
-
-# Function to unzip files in the downloads folder
-def unzip_downloads(install_dir):
+def unzip_downloads(install_dir, downloads_directory):
     halo_exe_path = os.path.join(install_dir, 'halo.exe')
     maps_dir_path = os.path.join(install_dir, 'maps')
 
-    if os.path.exists(halo_exe_path) and os.path.exists(maps_dir_path):
-        for root, dirs, files in os.walk(downloads_directory):
-            for file in files:
-                if file.endswith('.zip'):
-                    zip_file_path = os.path.join(root, file)
+    if not (os.path.exists(halo_exe_path) and os.path.exists(maps_dir_path)):
+        logging.error("Halo installation or maps directory not found.")
+        return
+
+    for root, _, files in os.walk(downloads_directory):
+        for file in files:
+            if file.endswith('.zip'):
+                zip_file_path = os.path.join(root, file)
+                try:
                     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                         zip_ref.extractall(downloads_directory)
+                    logging.info(f"Extracted: {zip_file_path}")
+                except zipfile.BadZipFile:
+                    logging.error(f"Bad zip file: {zip_file_path}")
+                except Exception as e:
+                    logging.error(f"Error extracting {zip_file_path}: {e}")
 
-# Function to move .map files to the installation's map folder
-def move_map_files(install_dir):
+
+def move_map_files(install_dir, downloads_directory):
     maps_dir_path = os.path.join(install_dir, 'maps')
-    ui_map_name = 'ui.map'
 
-    if os.path.exists(maps_dir_path):
-        ui_map_destination_path = os.path.join(maps_dir_path, ui_map_name)
+    if not os.path.exists(maps_dir_path):
+        logging.error(f"Maps directory not found: {maps_dir_path}")
+        return
 
-        # Check if ui.map already exists in the destination
-        ui_map_already_exists = os.path.exists(ui_map_destination_path)
+    for root, _, files in os.walk(downloads_directory):
+        for file in files:
+            if file.endswith('.map'):
+                map_file_path = os.path.join(root, file)
+                destination_path = os.path.join(maps_dir_path, file)
 
-        for root, dirs, files in os.walk(downloads_directory):
-            for file in files:
-                if file.endswith('.map'):
-                    map_file_path = os.path.join(root, file)
-                    destination_path = os.path.join(maps_dir_path, file)
+                if file.lower() == 'ui.map':
+                    if os.path.exists(destination_path):
+                        logging.info(f"ui.map already exists. Skipping.")
+                        continue  # Skip to the next file
 
-                    # Check if the file is a ui.map file
-                    if file.lower() == ui_map_name.lower():
-                        if not ui_map_already_exists:
-                            shutil.move(map_file_path, ui_map_destination_path)
-                            print(f"Moved file: {file} to {ui_map_destination_path}")
-                        else:
-                            print(f"{ui_map_name} already exists in {maps_dir_path}. Keeping the original.")
-                        break  # Skip other files if ui.map is already moved or exists
-                    else:
-                        # Check if the file already exists in the destination
-                        if not os.path.exists(destination_path):
-                            shutil.move(map_file_path, destination_path)
-                            print(f"Moved file: {file} to {maps_dir_path}")
-                        else:
-                            print(f"File {file} already exists in {maps_dir_path}. Skipping.")
+                if os.path.exists(destination_path):
+                    logging.info(f"File {file} already exists. Skipping.")
+                    continue
 
-        # Empty the downloads directory after moving the files
-        for file in os.listdir(downloads_directory):
-            file_path = os.path.join(downloads_directory, file)
-            try:
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print(f"Failed to delete {file_path}. Error: {e}")
+                try:
+                    shutil.move(map_file_path, destination_path)
+                    logging.info(f"Moved {file} to {destination_path}")
+                     # Delete the file AFTER successful move
+                    os.remove(map_file_path)
+                except OSError as e:
+                    logging.error(f"Error moving {file}: {e}")
+
+
+    # Empty the downloads directory after moving the files
+    for file in os.listdir(downloads_directory):
+        file_path = os.path.join(downloads_directory, file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            logging.error(f"Failed to delete {file_path}. Error: {e}")
 
 def main():
+    parser = argparse.ArgumentParser(description="Download and install Halo maps from halomaps.org.")
+    parser.add_argument("--HaloInstallDir", help="Specify the Halo installation directory")
+    parser.add_argument("-dm", "--DownloadMultiplayer", action="store_true", help="Download multiplayer maps")
+    parser.add_argument("-dmai", "--DownloadMultiplayerWthAI", action="store_true", help="Download multiplayer maps with AI")
+    parser.add_argument("-dmm", "--DownloadMultiplayerModified", action="store_true", help="Download modified multiplayer maps")
+    parser.add_argument("-dmfm", "--DownloadMultiplayerForMachinima", action="store_true", help="Download multiplayer maps for machinima")
+    parser.add_argument("-dlm", "--DownloadLumoria", action="store_true", help="Download Lumoria maps")
+    parser.add_argument("-dsm", "--DownloadSingleplayerModified", action="store_true", help="Download modified singleplayer maps")
+    parser.add_argument("-dscm", "--DownloadSingleplayerCustomMaps", action="store_true", help="Download custom singleplayer maps")
+    args = parser.parse_args()
 
-    create_downloads_folder()
-    
-    argumentList = sys.argv[1:]
+    downloads_directory = create_downloads_folder()
 
-    # Options
-    options = "hmo:"
-    # Long options
-    long_options = ["Help", "HaloInstallDir=", "DownloadMultiplayer", "DownloadMultiplayerWthAI", "DownloadMultiplayerModified", "DownloadMultiplayerForMachinima", "DownloadLumoria", "DownloadSingleplayerModified", "DownloadSingleplayerCustomMaps"]
+    # --- Selenium Setup (using webdriver_manager) ---
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')  # Run Chrome in headless mode
+    # Use webdriver_manager to handle ChromeDriver
+    service = Service(ChromeDriverManager().install())
+    browser = webdriver.Chrome(service=service, options=chrome_options)
+
 
     try:
-        # Parsing argument
-        arguments, values = getopt.getopt(argumentList, options, long_options)
+        if args.HaloInstallDir:
+            if os.path.exists(args.HaloInstallDir):
+                unzip_downloads(args.HaloInstallDir, downloads_directory)
+                move_map_files(args.HaloInstallDir, downloads_directory)
+            else:
+                logging.error(f"Error: Directory {args.HaloInstallDir} does not exist.")
+                sys.exit(1)
 
-        # checking each argument
-        for currentArgument, currentValue in arguments:
+        if args.DownloadMultiplayer:
+            logging.info("Starting multiplayer map download...")
+            scrape_filelinks(browser, "https://www.halomaps.org/hce/index.cfm?sid=10", downloads_directory)
+            for i in range(0, 400):
+                start_value = 31 + i * 30
+                url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=10&sort=1&Start={start_value}"
+                scrape_filelinks(browser, url_page_one, downloads_directory)
 
-            if currentArgument in ("-h", "--Help"):
-                print("Displaying Help")
-                print("Options:")
-                print("    -h, --Help: Display this help menu")
-                print("    --HaloInstallDir=<value>: Specify the Halo installation directory which will copy maps downloaded to there")
-                print("    -dm, --DownloadMultiplayer: Start the download process for multiplayer maps")
-                print("    -dlm, --DownloadLumoria: Start the download process for the Lumoria maps")
-                print("    -dmai, --DownloadMultiplayerWthAI: Start the download process for multiplayer maps which have AI")
-                print("    -dmm, --DownloadMultiplayerModified: Start the download process for multiplayer maps which are modified")
-                print("    -dmfm, --DownloadMultiplayerForMachinima: Start the download process for multiplayer maps which were used in machinimas")
-                print("    -dsm, --DownloadSingleplayerModified: Start the download process for singleplayer maps which are modified")
-                print("    -dscm, --DownloadSingleplayerCustomMaps: Start the download process for singleplayer maps which are custom")
+        if args.DownloadMultiplayerWthAI:
+            logging.info("Starting multiplayer map with AI download...")
+            scrape_filelinks(browser, "https://www.halomaps.org/hce/index.cfm?sid=39", downloads_directory)
+            for i in range(0, 400):
+                start_value = 31 + i * 30
+                url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=39&sort=1&Start={start_value}"
+                scrape_filelinks(browser, url_page_one, downloads_directory)
 
-            elif currentArgument in ("--HaloInstallDir"):
-                # Error handling implemented here to check that param is either true or false
-                print(("Moving files to (% s)") % (currentValue))
-                if os.path.exists(currentValue):
-                    unzip_downloads(currentValue)
-                    move_map_files(currentValue)
-                else:
-                    print(f"Error: Directory {currentValue} does not exist.")
+        if args.DownloadMultiplayerModified:
+            logging.info("Starting modified multiplayer map download...")
+            scrape_filelinks(browser, "https://www.halomaps.org/hce/index.cfm?sid=24", downloads_directory)
+            for i in range(0, 400):
+                start_value = 31 + i * 30
+                url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=24&sort=1&Start={start_value}"
+                scrape_filelinks(browser, url_page_one, downloads_directory)
 
-            elif currentArgument in ("-dm", "--DownloadMultiplayer"):
-                print("Download Started")
+        if args.DownloadMultiplayerForMachinima:
+            logging.info("Starting machinima multiplayer map download...")
+            scrape_filelinks(browser, "https://www.halomaps.org/hce/index.cfm?sid=29", downloads_directory)
 
-                # Run the scraping function for the first URL
-                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=10")
+        if args.DownloadLumoria:
+            logging.info("Starting Lumoria map download...")
+            filename, post_data = get_download_info(browser, "https://www.halomaps.org/hce/detail.cfm?fid=6507")
+            if filename and post_data:
+                download_file(f'{BASE_URL}detail.cfm', post_data, filename, downloads_directory)
 
-                # Run the scraping function for the second URL with Start parameter incremented by 30
-                for i in range(0, 400):  # Adjust the range based on how many times you want to increment Start
-                    start_value = 31 + i * 30
-                    url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=10&sort=1&Start={start_value}"
-                    scrape_filelinks(url_page_one)
-            
-            elif currentArgument in ("-dmai", "--DownloadMultiplayerWthAI"):
-                print("Download Started")
+        if args.DownloadSingleplayerModified:
+            logging.info("Starting modified singleplayer map download...")
+            scrape_filelinks(browser, "https://www.halomaps.org/hce/index.cfm?sid=27", downloads_directory)
+            for i in range(0, 400):
+                start_value = 31 + i * 30
+                url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=27&sort=1&Start={start_value}"
+                scrape_filelinks(browser, url_page_one, downloads_directory)
 
-                # Run the scraping function for the first URL
-                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=39")
+        if args.DownloadSingleplayerCustomMaps:
+            logging.info("Starting custom singleplayer map download...")
+            scrape_filelinks(browser, "https://www.halomaps.org/hce/index.cfm?sid=37", downloads_directory)
+            for i in range(0, 400):
+                start_value = 31 + i * 30
+                url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=37&sort=1&Start={start_value}"
+                scrape_filelinks(browser, url_page_one, downloads_directory)
 
-                # Run the scraping function for the second URL with Start parameter incremented by 30
-                for i in range(0, 400):  # Adjust the range based on how many times you want to increment Start
-                    start_value = 31 + i * 30
-                    url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=39&sort=1&Start={start_value}"
-                    scrape_filelinks(url_page_one)
-
-            elif currentArgument in ("-dmm", "--DownloadMultiplayerModified"):
-                print("Download Started")
-
-                # Run the scraping function for the first URL
-                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=24")
-
-                # Run the scraping function for the second URL with Start parameter incremented by 30
-                for i in range(0, 400):  # Adjust the range based on how many times you want to increment Start
-                    start_value = 31 + i * 30
-                    url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=24&sort=1&Start={start_value}"
-                    scrape_filelinks(url_page_one)
-
-            elif currentArgument in ("-dmfm", "--DownloadMultiplayerForMachinima"):
-                print("Download Started")
-
-                # Run the scraping function for the first URL
-                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=29")
-
-            elif currentArgument in ("-dlm", "--DownloadLumoria"):
-                print("Download Started")
-
-                # Run the scraping function for the lumoria URL here
-                scrape_filelinks_download("https://www.halomaps.org/hce/detail.cfm?fid=6507")
-            
-            elif currentArgument in ("-dsm", "--DownloadSingleplayerModified"):
-                print("Download Started")
-
-                # Run the scraping function for the first URL
-                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=27")
-
-                # Run the scraping function for the second URL with Start parameter incremented by 30
-                for i in range(0, 400):  # Adjust the range based on how many times you want to increment Start
-                    start_value = 31 + i * 30
-                    url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=27&sort=1&Start={start_value}"
-                    scrape_filelinks(url_page_one)
-            
-            elif currentArgument in ("-dscm", "--DownloadSingleplayerCustomMaps"):
-                print("Download Started")
-
-                # Run the scraping function for the first URL
-                scrape_filelinks("https://www.halomaps.org/hce/index.cfm?sid=37")
-
-                # Run the scraping function for the second URL with Start parameter incremented by 30
-                for i in range(0, 400):  # Adjust the range based on how many times you want to increment Start
-                    start_value = 31 + i * 30
-                    url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=27&sort=1&Start={start_value}"
-                    scrape_filelinks(url_page_one)
-
-    except getopt.error as err:
-        # output error, and return with an error code
-        print(str(err))
+    finally:
+        browser.quit()  # Ensure the browser is closed even if errors occur
 
 
 if __name__ == "__main__":
