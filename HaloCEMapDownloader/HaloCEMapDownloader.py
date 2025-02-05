@@ -216,6 +216,9 @@ def main():
     parser.add_argument("-dlm", "--DownloadLumoria", action="store_true", help="Download Lumoria maps")
     parser.add_argument("-dsm", "--DownloadSingleplayerModified", action="store_true", help="Download modified singleplayer maps")
     parser.add_argument("-dscm", "--DownloadSingleplayerCustomMaps", action="store_true", help="Download custom singleplayer maps")
+    parser.add_argument("-dcui", "--DownloadCustomUIs", action="store_true", help="Download custom UIs")
+    parser.add_argument("-dcms", "--DownloadCMTMaps", action="store_true", help="Download CMT Maps")
+
     args = parser.parse_args()
 
     downloads_directory = create_downloads_folder()
@@ -267,10 +270,7 @@ def main():
 
         if args.DownloadLumoria:
             logging.info("Starting Lumoria map download...")
-            #filename, post_data = get_download_info(browser, "https://www.halomaps.org/hce/detail.cfm?fid=6503")
             scrape_filelinks(browser, "https://www.halomaps.org/hce/index.cfm?sid=41", downloads_directory)
-            #if filename and post_data:
-            #    download_file(f'{BASE_URL}detail.cfm', post_data, filename, downloads_directory)
 
         if args.DownloadSingleplayerModified:
             logging.info("Starting modified singleplayer map download...")
@@ -287,6 +287,18 @@ def main():
                 start_value = 31 + i * 30
                 url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=37&sort=1&Start={start_value}"
                 scrape_filelinks(browser, url_page_one, downloads_directory)
+
+        if args.DownloadCustomUIs:
+            logging.info("Starting custom UIs map download...")
+            scrape_filelinks(browser, "https://www.halomaps.org/hce/index.cfm?sid=26", downloads_directory)
+            for i in range(0, 400):
+                start_value = 31 + i * 30
+                url_page_one = f"https://www.halomaps.org/hce/index.cfm?sid=26&sort=1&Start={start_value}"
+                scrape_filelinks(browser, url_page_one, downloads_directory)
+        
+        if args.DownloadCMTMaps:
+            logging.info("Starting CMT Maps download...")
+            scrape_filelinks(browser, "https://www.halomaps.org/hce/index.cfm?sid=35", downloads_directory)
 
     finally:
         browser.quit()  # Ensure the browser is closed even if errors occur
