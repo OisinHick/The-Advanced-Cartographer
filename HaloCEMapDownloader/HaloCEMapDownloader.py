@@ -37,7 +37,6 @@ DOWNLOAD_OPTIONS = {
 # --- Configure Logging ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
 def create_downloads_folder() -> str:
     """Creates a 'downloads' folder in the current directory if it doesn't exist."""
     downloads_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), DOWNLOADS_DIR)
@@ -63,7 +62,6 @@ def download_file(url: str, post_data: dict, filename: str, downloads_directory:
     except requests.exceptions.RequestException as e:
         logging.error(f"Error downloading {url}: {e}")
         return None
-
 
 def get_download_info(browser: webdriver.Chrome, url: str) -> tuple[str | None, dict | None]:
     """Retrieves download information (filename and POST data) from a map detail page."""
@@ -130,7 +128,6 @@ def scrape_filelinks(browser: webdriver.Chrome, url: str, downloads_directory: s
     else:
         _scrape_page(browser, url, downloads_directory)
 
-
 def _scrape_page(browser: webdriver.Chrome, url: str, downloads_directory: str):
     """Helper function to scrape a single page (used for both paginated and non-paginated)."""
     browser.get(url)
@@ -155,7 +152,6 @@ def _scrape_page(browser: webdriver.Chrome, url: str, downloads_directory: str):
             if filename and post_data:
                 download_file(f'{BASE_URL}detail.cfm', post_data, filename, downloads_directory)
 
-
 def unzip_downloads(install_dir: str, downloads_directory: str):
     """Unzips downloaded files into the downloads directory."""
     halo_exe_path = os.path.join(install_dir, 'halo.exe')
@@ -177,7 +173,6 @@ def unzip_downloads(install_dir: str, downloads_directory: str):
                     logging.error(f"Bad zip file: {zip_file_path}")
                 except Exception as e:
                     logging.error(f"Error extracting {zip_file_path}: {e}")
-
 
 def move_map_files(install_dir: str, downloads_directory: str):
     """Moves .map files from the downloads directory to the Halo maps directory."""
@@ -230,13 +225,15 @@ def process_downloads(browser: webdriver.Chrome, downloads_directory: str, optio
     for option, details in options.items():
         if details["selected"]:
             logging.info(f"Starting {option} download...")
+            if option == "DownloadLumoria":
+                logging.warning("Lumoria maps may require manual installation of sound DLLs.")
             scrape_filelinks(browser, details["url"], downloads_directory, details["paginated"])
-
 
 def main():
     parser = argparse.ArgumentParser(description="Download and install Halo maps from halomaps.org.")
     parser.add_argument("--HaloInstallDir", help="Specify the Halo installation directory")
-    # Removed the mutually exclusive group.
+
+    # Regular download options
     parser.add_argument("-dm", "--DownloadMultiplayer", action="store_true", help="Download multiplayer maps")
     parser.add_argument("-dmai", "--DownloadMultiplayerWthAI", action="store_true", help="Download multiplayer maps with AI")
     parser.add_argument("-dmm", "--DownloadMultiplayerModified", action="store_true", help="Download modified multiplayer maps")
@@ -246,8 +243,14 @@ def main():
     parser.add_argument("-dscm", "--DownloadSingleplayerCustomMaps", action="store_true", help="Download custom singleplayer maps")
     parser.add_argument("-dcui", "--DownloadCustomUIs", action="store_true", help="Download custom UIs")
     parser.add_argument("-dcms", "--DownloadCMTMaps", action="store_true", help="Download CMT Maps")
-
     args = parser.parse_args()
+
+    # Check for incompatible options
+    if args.DownloadCMTMaps and args.HaloInstallDir:
+        logging.error("Error: --HaloInstallDir cannot be used with -dcms/--DownloadCMTMaps.")
+        logging.error("CMT maps require manual installation.")
+        sys.exit(1)
+
 
     downloads_directory = create_downloads_folder()
 
