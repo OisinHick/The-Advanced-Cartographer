@@ -6,3 +6,5 @@ HaloCEMapDownloader/downloads/rupture.zip
 /HaloCEMapDownloader/Lib/site-packages
 /HaloCEMapDownloader/Lib/site-packages
 /HaloCEMapDownloader/Scripts
+*.map
+Halo/halo.exe

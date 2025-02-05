@@ -124,8 +124,8 @@ def get_download_info(browser: webdriver.Chrome, url: str) -> tuple[str | None, 
 def scrape_filelinks(browser: webdriver.Chrome, url: str, downloads_directory: str, paginated: bool = False):
     """Scrapes file links from a given URL and initiates downloads."""
     if paginated:
-        for i in range(0, 401, 30):  # Corrected loop for pagination
-            page_url = f"{url}&sort=1&Start={i}" if i > 0 else url #Simplified URL building.
+        for i in range(0, 401, 30):
+            page_url = f"{url}&sort=1&Start={i}" if i > 0 else url
             _scrape_page(browser, page_url, downloads_directory)
     else:
         _scrape_page(browser, url, downloads_directory)
@@ -236,17 +236,16 @@ def process_downloads(browser: webdriver.Chrome, downloads_directory: str, optio
 def main():
     parser = argparse.ArgumentParser(description="Download and install Halo maps from halomaps.org.")
     parser.add_argument("--HaloInstallDir", help="Specify the Halo installation directory")
-    # Create a group for mutually exclusive options (either specify a dir or download, not both)
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-dm", "--DownloadMultiplayer", action="store_true", help="Download multiplayer maps")
-    group.add_argument("-dmai", "--DownloadMultiplayerWthAI", action="store_true", help="Download multiplayer maps with AI")
-    group.add_argument("-dmm", "--DownloadMultiplayerModified", action="store_true", help="Download modified multiplayer maps")
-    group.add_argument("-dmfm", "--DownloadMultiplayerForMachinima", action="store_true", help="Download multiplayer maps for machinima")
-    group.add_argument("-dlm", "--DownloadLumoria", action="store_true", help="Download Lumoria maps")
-    group.add_argument("-dsm", "--DownloadSingleplayerModified", action="store_true", help="Download modified singleplayer maps")
-    group.add_argument("-dscm", "--DownloadSingleplayerCustomMaps", action="store_true", help="Download custom singleplayer maps")
-    group.add_argument("-dcui", "--DownloadCustomUIs", action="store_true", help="Download custom UIs")
-    group.add_argument("-dcms", "--DownloadCMTMaps", action="store_true", help="Download CMT Maps")
+    # Removed the mutually exclusive group.
+    parser.add_argument("-dm", "--DownloadMultiplayer", action="store_true", help="Download multiplayer maps")
+    parser.add_argument("-dmai", "--DownloadMultiplayerWthAI", action="store_true", help="Download multiplayer maps with AI")
+    parser.add_argument("-dmm", "--DownloadMultiplayerModified", action="store_true", help="Download modified multiplayer maps")
+    parser.add_argument("-dmfm", "--DownloadMultiplayerForMachinima", action="store_true", help="Download multiplayer maps for machinima")
+    parser.add_argument("-dlm", "--DownloadLumoria", action="store_true", help="Download Lumoria maps")
+    parser.add_argument("-dsm", "--DownloadSingleplayerModified", action="store_true", help="Download modified singleplayer maps")
+    parser.add_argument("-dscm", "--DownloadSingleplayerCustomMaps", action="store_true", help="Download custom singleplayer maps")
+    parser.add_argument("-dcui", "--DownloadCustomUIs", action="store_true", help="Download custom UIs")
+    parser.add_argument("-dcms", "--DownloadCMTMaps", action="store_true", help="Download CMT Maps")
 
     args = parser.parse_args()
 
@@ -267,6 +266,11 @@ def main():
             selected_options[arg]["selected"] = True
 
     try:
+        # First, process downloads if any download options are selected
+        if any(option["selected"] for option in selected_options.values()):
+            process_downloads(browser, downloads_directory, selected_options)
+
+        # Then, if HaloInstallDir is specified, unzip and move files
         if args.HaloInstallDir:
             if os.path.exists(args.HaloInstallDir):
                 unzip_downloads(args.HaloInstallDir, downloads_directory)
@@ -274,13 +278,9 @@ def main():
             else:
                 logging.error(f"Error: Directory {args.HaloInstallDir} does not exist.")
                 sys.exit(1)
-        else:  # Only process downloads if no install dir is specified
-            process_downloads(browser, downloads_directory, selected_options)
 
     finally:
         browser.quit()
-
-
 
 if __name__ == "__main__":
     main()
