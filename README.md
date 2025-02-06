@@ -5,7 +5,6 @@ This script downloads and optionally installs maps for Halo Custom Edition from 
 ## Features
 
 -   Downloads maps from various categories on halomaps.org.
--   Supports downloading maps from paginated lists.
 -   Optionally automatically extracts and moves `.map` files to a specified Halo installation directory.
 -   Handles invalid characters in filenames.
 -   Uses a headless Chrome browser for minimal visual intrusion.
@@ -15,7 +14,7 @@ This script downloads and optionally installs maps for Halo Custom Edition from 
 
 -   Python 3.7+
 -   Chrome browser installed
--   Required Python packages (install using `pip`):
+-   Required Python packages (install using `pip`, which is usually included with Python):
 
     ```bash
     pip install selenium requests beautifulsoup4 webdriver-manager
@@ -32,7 +31,7 @@ This script downloads and optionally installs maps for Halo Custom Edition from 
     cd <repository_directory>
     ```
 
-2.  **Run the Script:**
+2.  **Run the Script after installing requirements:**
 
     Use the following command-line arguments to control the script's behavior:
 
@@ -42,11 +41,11 @@ This script downloads and optionally installs maps for Halo Custom Edition from 
 
     **Options:**
 
-    -   `--HaloInstallDir <directory>`:  (Optional) Specify the Halo Custom Edition installation directory. If provided, the script will automatically move downloaded `.map` files to the `maps` folder within this directory *and will not download any files*.  This option is mutually exclusive with the download options.
+    -   `--HaloInstallDir <directory>`: (Optional) Specify the Halo Custom Edition installation directory. If provided, the script will automatically move downloaded `.map` files to the `maps` folder within this directory *and will not download any files*.  This option is mutually exclusive with the download options.
     -   `-dm`, `--DownloadMultiplayer`: Download multiplayer maps.
     -   `-dmai`, `--DownloadMultiplayerWthAI`: Download multiplayer maps with AI.
     -   `-dmm`, `--DownloadMultiplayerModified`: Download modified multiplayer maps.
-    -   `-dmfm`, `--DownloadMultiplayerForMachinima`: Download multiplayer maps used for machinima.
+    -   `-dmfm`, `--DownloadMultiplayerForMachinima`: Download multiplayer maps used for Machinima.
     -   `-dlm`, `--DownloadLumoria`: Download Lumoria maps.
     -   `-dsm`, `--DownloadSingleplayerModified`: Download modified singleplayer maps.
     -   `-dscm`, `--DownloadSingleplayerCustomMaps`: Download custom singleplayer maps.
@@ -80,48 +79,47 @@ This script downloads and optionally installs maps for Halo Custom Edition from 
         ```bash
         python HaloCEMapDownloader.py --HaloInstallDir "C:\Program Files (x86)\Microsoft Games\Halo Custom Edition"
         ```
-        *Important*:  This will *not* download any new maps.  It only processes files already in the `downloads` folder.
+        *Important*: This will *not* download any new maps.  It only processes files already in the `downloads` folder.
     - Show Help Menu
+
         ```bash
         python HaloCEMapDownloader.py -h
         ```
-
 3.  **Downloads Folder:**
 
-    Downloaded files will be saved in a folder named `downloads` in the same directory as the script.  Extracted `.map` files will also be placed in this folder *before* being moved to the Halo installation directory (if specified).
+    Downloaded files will be stored in a folder named `downloads` in the same directory as the script.  Extracted `.map` files will also be placed in this folder *temporarily during extraction* before being moved to the Halo installation directory (if specified).
 
-4. **Log Output**
-   - The script uses the `logging` module to provide informative output about its progress, including:
-     -  Creation of the `downloads` folder.
-     -  Found download links.
-     -  Downloaded file paths.
-     -  Extraction of ZIP files.
-     -  Moving of `.map` files.
-     -  Any errors encountered (e.g., network errors, file errors, timeouts).
+4.  **Log Output.**
+
+    The script uses the `logging` module to provide informative output about its progress, including:
+
+    -   Creation of the `downloads` folder.
+    -   Found download links.
+    -   Downloaded file paths.
+    -   Extraction of ZIP files.
+    -   Moving of `.map` files.
+    -   Logs any errors that occur, such as network issues, file errors, or timeouts.
 
 ## Important Notes
 
 -   **Website Structure:** This script relies on the HTML structure of halomaps.org. If the website's structure changes significantly, the script may need to be updated (specifically the XPath expressions and CSS selectors used to find elements).
--   **Download Speed:**  The download speed will depend on your internet connection and the halomaps.org server.
-- **Large Downloads**: Downloading *all* maps from a paginated category (e.g., multiplayer maps) can take a considerable amount of time and consume significant disk space.
-- **Error Handling**: The script includes error handling for common issues (network errors, file errors, etc.), but unexpected errors may still occur.  Check the log output for details.
--   **Headless Browser:** The script uses a headless Chrome browser, meaning you won't see a browser window open during the scraping process. This is generally more efficient.
+-   **Large Downloads:** Downloading *all* maps from a paginated category (e.g., multiplayer maps) can take a considerable amount of time and consume significant disk space. However, you should see them appear individually as each download finishes.
 
 ## Troubleshooting
 
 -   **`FileNotFoundError`:**
-    -   Make sure the `HaloInstallDir` you provided is correct and exists.
-    -   Make sure no invalid characters are in the filenames (the script attempts to remove these, but edge cases might exist).
+    -   Make sure the `HaloInstallDir` you provided is correct and exists with a halo.exe in it.
+    -   Make sure no invalid characters are in the filenames (the script attempts to remove these, but outlier cases might exist).
 -   **`TimeoutError`:**
     -   This usually indicates a network issue or a problem with the website.  Try running the script again later.
-    -   You could try increasing the `WebDriverWait` timeout (currently 10 seconds) in the `get_download_info` and `scrape_filelinks` functions, but this will make the script slower.
--   **Maps not appearing in Halo CE:**
-    -   Ensure the `.map` files were correctly moved to the `maps` folder within your Halo CE installation.
-    -   Make sure there are no duplicate `.map` files (the script tries to prevent this, but manual intervention might cause issues).
-    - Some custom maps may require additional files (e.g., textures, sounds) to be placed in specific folders within the Halo CE installation. Consult the map's documentation (if available) for instructions.
+    -   You could try increasing the `WebDriverWaitTimeout` (currently 10 seconds) in the `get_download_info` and `scrape_filelinks` functions, but this will make the script slower.
+-   **Maps Not Appearing in Halo CE:**
+    -   Ensure the `.map` files were correctly moved to the `maps` folder within your Halo CE installation. 
+    -   Ensure your using a UI file which can display your map.
+    -   Make sure there are no duplicate `.map` files (The script attempts to prevent overwrites, but manual intervention or errors could cause duplicates.). By default, the script will skip ui.map if it detects it.
+    -   Some custom maps may require additional files (e.g., textures, sounds) to be placed in specific folders within the Halo CE installation. Consult the map's documentation (if available) for instructions. As an example, CMT scripts currently need to be manually installed and Lumoria maps may need to have sound DLL's installed manually.
+    -   If a map file appears to be present but doesn't work, try re-downloading it. The original download may have been corrupted.
 
 ## Contributing
 
 If you find any bugs or have suggestions for improvements, feel free to create an issue or submit a pull request.
-
-This README provides comprehensive documentation for the Halo Custom Edition Map Downloader script, covering its features, prerequisites, usage, troubleshooting, and contribution guidelines.  It's well-structured and easy to understand, making it a valuable resource for users of the script.
