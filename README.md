@@ -1,4 +1,4 @@
-# Halo Custom Edition Map Downloader
+# The Advanced Cartographer
 
 This script downloads and optionally installs maps for Halo Custom Edition from [halomaps.org](https://www.halomaps.org/). It uses Selenium for web scraping and browser automation, `requests` for downloading files, and `webdriver-manager` for managing ChromeDriver.
 
