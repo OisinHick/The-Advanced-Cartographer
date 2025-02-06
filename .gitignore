@@ -1,10 +1,1 @@
 
-HaloCEMapDownloader/downloads/rupture.zip
-*.zip
-/HaloCEMapDownloader/Lib
-/HaloCEMapDownloader/Lib
-/HaloCEMapDownloader/Lib/site-packages
-/HaloCEMapDownloader/Lib/site-packages
-/HaloCEMapDownloader/Scripts
-*.map
-Halo/halo.exe
