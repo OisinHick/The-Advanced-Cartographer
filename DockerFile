@@ -1,7 +1,7 @@
-FROM python:3.9
+FROM python:3.11
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Install system dependencies, and specific Chrome/ChromeDriver versions.
 RUN apt-get update -qq -y && \
@@ -31,12 +31,13 @@ RUN wget -q -O chromedriver-linux64.zip https://bit.ly/chromedriver-linux64-121-
     mv chromedriver /usr/local/bin/
 
 WORKDIR /app
-RUN git clone https://github.com/OisinHick/The-Advanced-Cartographer.git .
+RUN git clone https://github.com/OisinHick/The-Advanced-Cartographer.git /app
 
 # Install Python dependencies. Since we are manually installing ChromeDriver,
 # remove webdriver-manager.  It's crucial that the Chrome and ChromeDriver
 # versions match EXACTLY.
-#RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install bs4 selenium webdriver_manager requests
 
 # Set the Chrome options to use the manually installed Chrome
-CMD ["python", "the_advanced_cartographer.py", "-dm"]
+CMD ["python", "/app/HaloCEMapDownloader.py", "-dm"]
+#CMD ["bash", "-c", "tail -f /dev/null"]
