@@ -17,7 +17,7 @@ This script downloads and optionally installs maps for Halo Custom Edition from 
 -   Required Python packages (install using `pip`, which is usually included with Python):
 
     ```bash
-    pip install selenium requests beautifulsoup4 webdriver-manager
+    pip install selenium requests beautifulsoup4
     ```
 
 ## Usage

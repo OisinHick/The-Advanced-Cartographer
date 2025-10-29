@@ -5,7 +5,6 @@ import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -13,7 +12,6 @@ from urllib.parse import urljoin
 import shutil
 import logging
 import argparse
-from webdriver_manager.chrome import ChromeDriverManager
 import re
 
 # --- Constants ---
@@ -216,9 +214,8 @@ def move_map_files(install_dir: str, downloads_directory: str):
 def setup_browser() -> webdriver.Chrome:
     """Sets up and returns a headless Chrome webdriver instance."""
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    service = Service(ChromeDriverManager().install())
-    return webdriver.Chrome(service=service, options=chrome_options)
+    chrome_options.add_argument("--headless")
+    return webdriver.Chrome(options=chrome_options)
 
 def process_downloads(browser: webdriver.Chrome, downloads_directory: str, options: dict):
     """Processes the selected download options."""
