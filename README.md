@@ -85,11 +85,15 @@ This script downloads and optionally installs maps for Halo Custom Edition from 
         ```bash
         python HaloCEMapDownloader.py -h
         ```
-3.  **Downloads Folder:**
+3.  **Running with Docker:**
+
+    Alternatively, you can run this application containerized using Docker, avoiding the need to set up Python and Chrome on your host machine. For detailed instructions, refer to the [DOCKER.md](DOCKER.md) guide.
+
+4.  **Downloads Folder:**
 
     Downloaded files will be stored in a folder named `downloads` in the same directory as the script.  Extracted `.map` files will also be placed in this folder *temporarily during extraction* before being moved to the Halo installation directory (if specified).
 
-4.  **Log Output.**
+5.  **Log Output.**
 
     The script uses the `logging` module to provide informative output about its progress, including:
 

@@ -1,0 +1,15 @@
+services:
+  downloader:
+    build: .
+    image: halomaps-downloader
+    container_name: halomaps-downloader
+    volumes:
+      # Map the downloads directory to retrieve downloaded maps on your host machine
+      - ./downloads:/app/downloads
+      # To automatically extract and install downloaded maps, uncomment the line below 
+      # and replace the host path with the path to your Halo Custom Edition installation folder.
+      # - /path/to/your/Halo/CE/Installation:/halo
+    # Default arguments to pass to the script. Replace '--help' with your desired download flags.
+    # For example, to download multiplayer maps and automatically copy them to the Halo install folder:
+    # command: -dm --HaloInstallDir /halo
+    command: --help
