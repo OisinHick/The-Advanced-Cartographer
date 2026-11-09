@@ -1,129 +1,167 @@
 # The Advanced Cartographer
 
-This script downloads and optionally installs maps for Halo Custom Edition from [halomaps.org](https://www.halomaps.org/). It uses Selenium for web scraping and browser automation, `requests` for downloading files, and `webdriver-manager` for managing ChromeDriver.
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-oisin833%2Fthe--advanced--cartographer-blue?logo=docker)](https://hub.docker.com/r/oisin833/the-advanced-cartographer)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-brightgreen.svg)](https://www.python.org/downloads/)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)]()
+
+**The Advanced Cartographer** is an automated tool designed to scrape, download, extract, and optionally install custom maps and community content for **Halo: Custom Edition** directly from [halomaps.org](https://www.halomaps.org/).
+
+The tool uses Selenium 4 with headless Google Chrome for reliable form interaction and link discovery, `requests` for streaming downloads, and Python's built-in archive extraction utilities to manage map placement into your Halo CE installation.
+
+---
 
 ## Features
 
--   Downloads maps from various categories on halomaps.org.
--   Optionally automatically extracts and moves `.map` files to a specified Halo installation directory.
--   Handles invalid characters in filenames.
--   Uses a headless Chrome browser for minimal visual intrusion.
--   Automatically manages ChromeDriver installation using `webdriver-manager`.
+- **Extensive Category Coverage:** Scrapes and downloads multiplayer maps, AI multiplayer, singleplayer custom maps, Machinima maps, Lumoria campaign, custom UIs, and CMT releases.
+- **Automated Pagination:** Seamlessly navigates paginated halomaps.org sections to batch-download map archives.
+- **Auto-Extraction & Installation:** Automatically extracts `.map` files from downloaded `.zip` archives and installs them directly into your Halo CE `maps/` directory.
+- **Safety Checks:** Prevents overwriting existing maps and protects core interface files like `ui.map`.
+- **Zero-Setup Docker Option:** Available on [Docker Hub](https://hub.docker.com/r/oisin833/the-advanced-cartographer) with Chrome and dependencies pre-configured.
+- **Clean Headless Execution:** Runs Google Chrome in headless mode with low memory overhead.
 
-## Prerequisites
+---
 
--   Python 3.7+
--   Chrome browser installed
--   Required Python packages (install using `pip`, which is usually included with Python):
+## Quick Start with Docker (Recommended)
 
-    ```bash
-    pip install selenium requests beautifulsoup4
-    ```
+Running via Docker eliminates the need to install Python, Chrome, or any dependencies on your system.
 
-## Usage
+### Pull from Docker Hub
+```bash
+docker pull oisin833/the-advanced-cartographer:latest
+```
 
-1.  **Clone the Repository (Optional):**
+### Download Maps to Local Directory
+```bash
+# Linux / macOS:
+docker run --rm -v "$(pwd)/downloads:/app/downloads" oisin833/the-advanced-cartographer:latest -dm
 
-    Clone it to your local machine:
+# Windows (PowerShell):
+docker run --rm -v "${PWD}/downloads:/app/downloads" oisin833/the-advanced-cartographer:latest -dm
+```
 
-    ```bash
-    git clone <repository_url>
-    cd <repository_directory>
-    ```
+### Docker Compose
+A ready-to-use [`docker-compose.yml`](docker-compose.yml) is included:
+```bash
+# Show options
+docker compose run --rm downloader --help
 
-2.  **Run the Script after installing requirements:**
+# Download multiplayer maps
+docker compose run --rm downloader -dm
+```
 
-    Use the following command-line arguments to control the script's behavior:
+For full container instructions, volume configurations, and automated Halo CE installation examples, see **[DOCKER.md](DOCKER.md)**.
 
-    ```bash
-    python HaloCEMapDownloader.py [options]
-    ```
+---
 
-    **Options:**
+## Local Installation (Without Docker)
 
-    -   `--HaloInstallDir <directory>`: (Optional) Specify the Halo Custom Edition installation directory. If provided, the script will automatically move downloaded `.map` files to the `maps` folder within this directory *and will not download any files*.  This option is mutually exclusive with the download options.
-    -   `-dm`, `--DownloadMultiplayer`: Download multiplayer maps.
-    -   `-dmai`, `--DownloadMultiplayerWthAI`: Download multiplayer maps with AI.
-    -   `-dmm`, `--DownloadMultiplayerModified`: Download modified multiplayer maps.
-    -   `-dmfm`, `--DownloadMultiplayerForMachinima`: Download multiplayer maps used for Machinima.
-    -   `-dlm`, `--DownloadLumoria`: Download Lumoria maps.
-    -   `-dsm`, `--DownloadSingleplayerModified`: Download modified singleplayer maps.
-    -   `-dscm`, `--DownloadSingleplayerCustomMaps`: Download custom singleplayer maps.
-    -   `-dcui`, `--DownloadCustomUIs`: Download custom UIs.
-    -   `-dcms`, `--DownloadCMTMaps`: Download CMT Maps.
-    -    `-h`, `--help`: Show the help message.
+### Prerequisites
 
-    **Examples:**
+- **Python 3.10+**
+- **Google Chrome** installed on your host machine
+- **Git**
 
-    -   Download all multiplayer maps:
+### 1. Clone the Repository
+```bash
+git clone https://github.com/OisinHick/The-Advanced-Cartographer.git
+cd The-Advanced-Cartographer
+```
 
-        ```bash
-        python HaloCEMapDownloader.py -dm
-        ```
+### 2. Install Dependencies
+It is recommended to use a virtual environment:
+```bash
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: .\venv\Scripts\activate
 
-    -   Download Lumoria maps:
+# Install required packages
+pip install -r requirements.txt
+```
 
-        ```bash
-        python HaloCEMapDownloader.py -dlm
-        ```
+---
 
-    -   Download multiplayer maps and move them to the Halo installation directory:
+## Command-Line Usage
 
-        ```bash
-        python HaloCEMapDownloader.py -dm --HaloInstallDir "C:\Program Files (x86)\Microsoft Games\Halo Custom Edition"
-        ```
-        *Important*: Replace `"C:\Program Files (x86)\Microsoft Games\Halo Custom Edition"` with the actual path to your Halo CE installation.
+Run the script from the project directory:
 
-    -   Move existing `.map` files from the `downloads` folder to the Halo CE installation:
+```bash
+python HaloCEMapDownloader.py [options]
+```
 
-        ```bash
-        python HaloCEMapDownloader.py --HaloInstallDir "C:\Program Files (x86)\Microsoft Games\Halo Custom Edition"
-        ```
-        *Important*: This will *not* download any new maps.  It only processes files already in the `downloads` folder.
-    - Show Help Menu
+### Available Options
 
-        ```bash
-        python HaloCEMapDownloader.py -h
-        ```
-3.  **Running with Docker:**
+| Short Flag | Long Flag | Description | Paginated |
+| :--- | :--- | :--- | :---: |
+| `-h` | `--help` | Display the help menu and exit | — |
+| | `--HaloInstallDir <path>` | Specify Halo CE installation folder for auto-extract & install | — |
+| `-dm` | `--DownloadMultiplayer` | Download multiplayer maps | Yes |
+| `-dmai` | `--DownloadMultiplayerWthAI` | Download multiplayer maps with AI | Yes |
+| `-dmm` | `--DownloadMultiplayerModified` | Download modified multiplayer maps | Yes |
+| `-dmfm` | `--DownloadMultiplayerForMachinima`| Download Machinima multiplayer maps | No |
+| `-dlm` | `--DownloadLumoria` | Download Lumoria campaign maps | No |
+| `-dsm` | `--DownloadSingleplayerModified` | Download modified singleplayer maps | Yes |
+| `-dscm` | `--DownloadSingleplayerCustomMaps`| Download custom singleplayer maps | Yes |
+| `-dcui` | `--DownloadCustomUIs` | Download custom UI maps | Yes |
+| `-dcms` | `--DownloadCMTMaps` | Download CMT maps (manual install required) | No |
 
-    Alternatively, you can run this application containerized using Docker, avoiding the need to set up Python and Chrome on your host machine. For detailed instructions, refer to the [DOCKER.md](DOCKER.md) guide.
+---
 
-4.  **Downloads Folder:**
+## Usage Examples
 
-    Downloaded files will be stored in a folder named `downloads` in the same directory as the script.  Extracted `.map` files will also be placed in this folder *temporarily during extraction* before being moved to the Halo installation directory (if specified).
+### 1. Download Only
+Files are saved to a local `downloads/` directory:
 
-5.  **Log Output.**
+```bash
+# Download all multiplayer maps
+python HaloCEMapDownloader.py -dm
 
-    The script uses the `logging` module to provide informative output about its progress, including:
+# Download custom singleplayer maps
+python HaloCEMapDownloader.py -dscm
 
-    -   Creation of the `downloads` folder.
-    -   Found download links.
-    -   Downloaded file paths.
-    -   Extraction of ZIP files.
-    -   Moving of `.map` files.
-    -   Logs any errors that occur, such as network issues, file errors, or timeouts.
+# Download Lumoria campaign maps
+python HaloCEMapDownloader.py -dlm
+```
 
-## Important Notes
+### 2. Download and Automatically Install into Halo CE
+Provide `--HaloInstallDir` alongside download flags. The script will download the files, extract any `.map` files into `<HaloInstallDir>/maps`, and clean up the temporary zip files:
 
--   **Website Structure:** This script relies on the HTML structure of halomaps.org. If the website's structure changes significantly, the script may need to be updated (specifically the XPath expressions and CSS selectors used to find elements).
--   **Large Downloads:** Downloading *all* maps from a paginated category (e.g., multiplayer maps) can take a considerable amount of time and consume significant disk space. However, you should see them appear individually as each download finishes.
+```bash
+# Windows
+python HaloCEMapDownloader.py -dm --HaloInstallDir "C:\Program Files (x86)\Microsoft Games\Halo Custom Edition"
 
-## Troubleshooting
+# Linux / Wine
+python HaloCEMapDownloader.py -dm --HaloInstallDir "/home/user/.wine/drive_c/Program Files (x86)/Microsoft Games/Halo Custom Edition"
+```
 
--   **`FileNotFoundError`:**
-    -   Make sure the `HaloInstallDir` you provided is correct and exists with a halo.exe in it.
-    -   Make sure no invalid characters are in the filenames (the script attempts to remove these, but outlier cases might exist).
--   **`TimeoutError`:**
-    -   This usually indicates a network issue or a problem with the website.  Try running the script again later.
-    -   You could try increasing the `WebDriverWaitTimeout` (currently 10 seconds) in the `get_download_info` and `scrape_filelinks` functions, but this will make the script slower.
--   **Maps Not Appearing in Halo CE:**
-    -   Ensure the `.map` files were correctly moved to the `maps` folder within your Halo CE installation. 
-    -   Ensure your using a UI file which can display your map.
-    -   Make sure there are no duplicate `.map` files (The script attempts to prevent overwrites, but manual intervention or errors could cause duplicates.). By default, the script will skip ui.map if it detects it.
-    -   Some custom maps may require additional files (e.g., textures, sounds) to be placed in specific folders within the Halo CE installation. Consult the map's documentation (if available) for instructions. As an example, CMT scripts currently need to be manually installed and Lumoria maps may need to have sound DLL's installed manually.
-    -   If a map file appears to be present but doesn't work, try re-downloading it. The original download may have been corrupted.
+> **Requirement:** The directory specified in `--HaloInstallDir` must contain `halo.exe` and a `maps/` subdirectory.
+
+### 3. Install Previously Downloaded Maps
+If you already have zip files or `.map` files in your `downloads/` directory, specify `--HaloInstallDir` without download flags to process and install them:
+
+```bash
+python HaloCEMapDownloader.py --HaloInstallDir "C:\Program Files (x86)\Microsoft Games\Halo Custom Edition"
+```
+
+---
+
+## Important Notes & Troubleshooting
+
+### Special Map Requirements
+- **CMT Maps (`-dcms`):** CMT maps rely on external scripts and assets beyond simple `.map` placement. As a result, `--HaloInstallDir` cannot be used with `-dcms`. Download the files and follow CMT's included instructions for manual installation.
+- **Lumoria Maps (`-dlm`):** Lumoria campaign maps may require external sound DLLs to be installed into your Halo root directory for audio to function properly.
+- **Custom UIs (`-dcui`):** Halo CE requires a UI that includes menu entries for custom maps. By default, the installer will skip replacing `ui.map` if one already exists to prevent overwriting your existing menu setup.
+
+### Common Issues
+
+- **`Halo installation or maps directory not found`:**
+  Ensure the path passed to `--HaloInstallDir` is the root Halo Custom Edition folder containing `halo.exe`, and ensure a `maps/` subfolder exists inside it.
+- **`TimeoutError`:**
+  Indicates network latency or halomaps.org server responsiveness issues. Retry the command.
+- **Browser/Driver Initialization Issues (Local execution):**
+  Ensure Google Chrome is updated to a modern version. Selenium 4 manages the required ChromeDriver automatically. Alternatively, run via Docker to bypass host browser configuration.
+
+---
 
 ## Contributing
 
-If you find any bugs or have suggestions for improvements, feel free to create an issue or submit a pull request.
+Contributions, bug reports, and suggestions are welcome! Please open an issue or submit a pull request on [GitHub](https://github.com/OisinHick/The-Advanced-Cartographer).

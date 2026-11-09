@@ -1,3 +1,17 @@
-.venv
+# Python environments
+.venv/
+venv/
+
+# Byte-compiled / optimized files
 __pycache__/
-downloads
+*.py[cod]
+*$py.class
+
+# Downloaded files and maps
+downloads/
+*.zip
+*.map
+
+# OS generated files
+.DS_Store
+Thumbs.db

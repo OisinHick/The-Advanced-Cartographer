@@ -1,74 +1,141 @@
-# Running Halo CE Map Downloader with Docker
+# Running The Advanced Cartographer with Docker
 
-This project can be run inside a Docker container, avoiding the need to install Python, Chrome, and various dependencies directly on your host machine.
+Run **The Advanced Cartographer** inside a Docker container without needing to manually install Python, Google Chrome, or browser drivers on your host system.
 
----
-
-## Prerequisites
-
--   [Docker](https://www.docker.com/) installed and running.
--   Docker Compose (optional, but recommended).
+The official container image is published on Docker Hub:
+**[`oisin833/the-advanced-cartographer`](https://hub.docker.com/r/oisin833/the-advanced-cartographer)**
 
 ---
 
-## 1. Quick Start with Docker Compose
+## 1. Prerequisites
 
-We provide a `docker-compose.yml` to make running and configuring the downloader as easy as possible.
+- [Docker](https://docs.docker.com/get-docker/) (version 20.10+ recommended)
+- [Docker Compose](https://docs.docker.com/compose/) (included with Docker Desktop on Windows/macOS, or Docker Compose V2 on Linux)
 
-### Show Help Menu
+---
+
+## 2. Quick Start with Docker Compose (Recommended)
+
+A preconfigured [`docker-compose.yml`](docker-compose.yml) is included in this repository.
+
+### Display the Help Menu
 ```bash
 docker compose run --rm downloader
 ```
 
-### Download Multiplayer Maps
-```bash
-docker compose run --rm downloader -dm
-```
-This will download maps and place them in the `./downloads` folder on your host machine.
+### Download Maps to Host
+By default, files are downloaded directly into `./downloads` on your host machine:
 
-### Automatically Install Maps to Halo CE
-To have the script automatically extract and copy `.map` files into your Halo Custom Edition installation directory:
+- **Multiplayer Maps:**
+  ```bash
+  docker compose run --rm downloader -dm
+  ```
 
-1.  Open `docker-compose.yml`.
-2.  Uncomment and configure the volume pointing to your Halo installation directory:
-    ```yaml
-    volumes:
-      - ./downloads:/app/downloads
-      - /path/to/your/Halo/CE/Installation:/halo
-    ```
-3.  Run the downloader specifying `/halo` as the installation directory:
-    ```bash
-    docker compose run --rm downloader -dm --HaloInstallDir /halo
-    ```
+- **Singleplayer Custom Maps:**
+  ```bash
+  docker compose run --rm downloader -dscm
+  ```
+
+- **Multiplayer Maps with AI:**
+  ```bash
+  docker compose run --rm downloader -dmai
+  ```
+
+### Automatically Download & Install to Halo Custom Edition
+
+1. Open [`docker-compose.yml`](docker-compose.yml).
+2. Uncomment the Halo installation volume line and set it to your host's Halo CE path:
+   ```yaml
+   volumes:
+     - ./downloads:/app/downloads
+     - C:\Program Files (x86)\Microsoft Games\Halo Custom Edition:/halo   # Windows example
+     # or for Linux/Wine:
+     # - /home/user/.wine/drive_c/Program Files (x86)/Microsoft Games/Halo Custom Edition:/halo
+   ```
+3. Run the container specifying `/halo` as the `--HaloInstallDir`:
+   ```bash
+   docker compose run --rm downloader -dm --HaloInstallDir /halo
+   ```
+   The container will download the archives, extract `.map` files directly into your Halo CE `maps/` directory (skipping duplicates and `ui.map`), and clean up downloaded archives upon completion.
 
 ---
 
-## 2. Using Docker CLI
+## 3. Using the Docker CLI (Direct `docker run`)
 
-If you prefer using standard Docker commands:
+You do not need to clone the repository to run the container. You can run the official pre-built image directly from Docker Hub:
 
-### Build the Image
+### Pull the Image
 ```bash
-docker build -t halomaps-downloader .
+docker pull oisin833/the-advanced-cartographer:latest
 ```
 
-### Run the Downloader (Standard Download)
+### Show Help
 ```bash
-docker run --rm -v "$(pwd)/downloads:/app/downloads" halomaps-downloader -dm
+docker run --rm oisin833/the-advanced-cartographer:latest --help
 ```
 
-### Run the Downloader and Auto-Install Maps
+### Download Maps
+
+**Linux / macOS (Bash / Zsh):**
+```bash
+docker run --rm -v "$(pwd)/downloads:/app/downloads" oisin833/the-advanced-cartographer:latest -dm
+```
+
+**Windows (PowerShell):**
+```powershell
+docker run --rm -v "${PWD}/downloads:/app/downloads" oisin833/the-advanced-cartographer:latest -dm
+```
+
+**Windows (Command Prompt):**
+```cmd
+docker run --rm -v "%cd%/downloads:/app/downloads" oisin833/the-advanced-cartographer:latest -dm
+```
+
+### Download and Auto-Install Directly to Halo CE
+
+Mount your host Halo directory into `/halo` inside the container:
+
+**Linux / macOS:**
 ```bash
 docker run --rm \
   -v "$(pwd)/downloads:/app/downloads" \
-  -v "/path/to/your/Halo/CE/Installation:/halo" \
-  halomaps-downloader -dm --HaloInstallDir /halo
+  -v "/path/to/halo/ce:/halo" \
+  oisin833/the-advanced-cartographer:latest -dm --HaloInstallDir /halo
+```
+
+**Windows (PowerShell):**
+```powershell
+docker run --rm `
+  -v "${PWD}/downloads:/app/downloads" `
+  -v "C:\Program Files (x86)\Microsoft Games\Halo Custom Edition:/halo" `
+  oisin833/the-advanced-cartographer:latest -dm --HaloInstallDir /halo
 ```
 
 ---
 
-## ⚙️ Configuration details
+## 4. Building the Image from Source
 
--   **Base Image:** Built using `python:3.12-slim` for a lightweight and secure footprint.
--   **Browser Driver:** Leverages Selenium 4's built-in Selenium Manager to automatically handle the download and configuration of the Chrome WebDriver matching the installed Google Chrome version.
--   **Stability:** Runs Google Chrome in `--headless` mode with `--no-sandbox` and `--disable-dev-shm-usage` flags, resolving common container crash issues.
+If you prefer building the image locally from source:
+
+```bash
+# Clone the repository
+git clone https://github.com/OisinHick/The-Advanced-Cartographer.git
+cd The-Advanced-Cartographer
+
+# Build the image
+docker build -t oisin833/the-advanced-cartographer:latest .
+```
+
+Or using Docker Compose:
+```bash
+docker compose build
+```
+
+---
+
+## 5. Technical & Runtime Details
+
+- **Base Image:** Built on `python:3.12-slim` for a lightweight and secure container footprint.
+- **Chrome & Driver Management:** Installs the official `google-chrome-stable` package and utilizes Selenium 4's built-in **Selenium Manager** to dynamically match and provision ChromeDriver.
+- **Headless Execution:** Pre-configured with `--headless`, `--no-sandbox`, `--disable-gpu`, and `--disable-dev-shm-usage` flags for stable, headless browser execution in restricted container environments.
+- **Volume Permissions:** The internal `/app/downloads` directory is set to permissive access (`chmod 777`) to avoid volume permission issues when mounting local host directories across diverse host operating systems and user IDs.

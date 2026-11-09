@@ -1,0 +1,21 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python virtual environment and cache
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Temporary and local downloads
+downloads/
+*.zip
+*.map
+
+# Test and tooling artifacts
+.pytest_cache/
+.DS_Store
